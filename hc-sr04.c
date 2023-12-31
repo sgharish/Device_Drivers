@@ -69,3 +69,9 @@ void hcsr04_exit(void)
 /*license related info*/
 MODULE_AUTHOR("Harish Gopal");
 MODULE_LICENSE("GPL");
+
+/*module initialization and removing*/
+module_init(hcsr04_init);
+module_exit(hcsr04_exit);
+
+
