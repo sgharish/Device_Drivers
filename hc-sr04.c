@@ -90,6 +90,7 @@ int hcsr04_init(void)
                 return -EINVAL;
         }
         irq_num = gpio_to_irq(ECHO);
+        // reference : https://tldp.org/LDP/lkmpg/2.6/html/x1256.html
         if (request_irq (irq_num,void* irq_echo_handler,
                           IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
                          "distsensor",NULL)){
