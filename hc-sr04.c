@@ -21,7 +21,7 @@
 /************************Global Variables*******************/
 /*decelaring the driver device name using cdev character ref: book(functions explained) or linux doc*/
 struct cdev *hcsr04_dev;
-/*since we will be doing a dynamic allocation major is consider 0. Please check the list if you want to utilise exist                                                                                                                        ing onces*/
+/*since we will be doing a dynamic allocation major is consider 0. Please check the list if you want to utilise existing onces*/
 int hcsrmjr = 0;
 int irq_num;
 /*Initialise ktime*/
@@ -39,11 +39,13 @@ irqreturn_t irq_echo_handler(int irq, void *dev_id){
         if(echo_status == 1){
                 printk(KERN_INFO"Starting the wait");
                 etime_start = ktime_get();
+                printk(KERN_INFO"%lld",etime_start);
         }else{
                 printk(KERN_INFO"wait complete");
                 etime_end = ktime_get();
                 condition = 1;
                 wake_up_interruptible(&short_queue);
+                printk(KERN_INFO"%lld",etime_start);
         }
         return IRQ_HANDLED;
 }
@@ -55,11 +57,11 @@ ssize_t hcsr04_read(struct file *filp, char __user *buf, size_t count, loff_t *f
     ktime_t level_time;
     long int echo_time_out;
     condition =0;
-    //spin_lock_init(&hcsr04_lock);
+    spin_lock_init(&hcsr04_lock);
 
    /*checking position of the pointer in the file. If its at the end of file close it or stop reading*/
     if (*f_pos > 0) {
-        return 0;
+        return -EEXIST;
     }
     spin_lock(&hcsr04_lock);
    /*sending out trigger pulse for 10µs*/
@@ -77,9 +79,11 @@ ssize_t hcsr04_read(struct file *filp, char __user *buf, size_t count, loff_t *f
     }
 
     /*use ktime to measure the high level time*/
-    level_time = ktime_sub(etime_start,etime_end);
-    range_mm = ((unsigned int)ktime_to_us(level_time)) * (340/2000);
-    /*store the read value into the variable . Similar to normal drivers. It is good to read with individual decelart                                                                                                                        ions*/
+    level_time = ktime_sub(etime_end,etime_start);
+    ktime_t range  =  (unsigned int)ktime_to_us(level_time);
+    range_mm = ((unsigned int)ktime_to_us(level_time)) * 340/2/1000;
+    printk(KERN_INFO"%lld distance", range);
+   /*store the read value into the variable . Similar to normal drivers. It is good to read with individual decelartions*/
     if (copy_to_user(buf, &range_mm, sizeof(range_mm))) {
         spin_unlock(&hcsr04_lock);
         return -EAGAIN;
@@ -92,15 +96,15 @@ ssize_t hcsr04_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 }
 
 int hcsr04_open(struct inode *inode, struct file *filp){
-        /*if(spin_is_locked(&hcsr04_lock)!=0){
+        if(spin_is_locked(&hcsr04_lock)!=0){
                 return -EBUSY;
-        }*/
+        }
         return 0;
 }
 
 
 int hcsr04_release (struct inode *inode, struct file *filp ){
-        //spin_unlock(&hcsr04_lock);
+        spin_unlock(&hcsr04_lock);
         return 0;
 }
 
